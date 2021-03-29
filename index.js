@@ -13,10 +13,16 @@ app.use(express.json());
 app.post('/addresses', async (req, res) => {
   if (!req.body.addresses) {
     res.status(404).send({ ERROR: 'value addresses not found.' });
+    return;
   }
 
   let formatted_addresses = req.body.addresses.split(';');
   console.log(formatted_addresses);
+
+  if (formatted_addresses.length < 2) {
+    res.send({ ERROR: 'Please provide more than 1 address' });
+    return;
+  }
 
   const adressesWithCoordinates = await getCoordinates(formatted_addresses);
   console.log(JSON.stringify(adressesWithCoordinates));
@@ -25,6 +31,7 @@ app.post('/addresses', async (req, res) => {
   let shortestDistance = 0;
   let shortestDistanceText = '';
   let longestDistanceText = '';
+  let allDistances = [];
   for (let i = 0; i < adressesWithCoordinates.length; i++) {
     for (let j = i + 1; j < adressesWithCoordinates.length; j++) {
       const distance = getDistanceFromLatLonInKm(
@@ -37,6 +44,12 @@ app.post('/addresses', async (req, res) => {
           lng: adressesWithCoordinates[j].lng,
         }
       );
+
+      allDistances.push({
+        distance: `${distance} meters`,
+        address_1: adressesWithCoordinates[i].address,
+        address_2: adressesWithCoordinates[j].address,
+      });
 
       if (shortestDistance === 0 && longestDistance === 0) {
         shortestDistance = distance;
@@ -57,6 +70,7 @@ app.post('/addresses', async (req, res) => {
   }
 
   res.send({
+    distances: allDistances,
     shortestDistance: shortestDistanceText,
     longestDistance: longestDistanceText,
   });
